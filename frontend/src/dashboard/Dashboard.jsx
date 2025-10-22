@@ -10,6 +10,7 @@ import "../styles/Dashboard.css";
 
 function Dashboard() {
 
+
     return (
         <div className="dashboard">
             {/* Sidebar component */}

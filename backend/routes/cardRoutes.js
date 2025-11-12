@@ -5,25 +5,29 @@ const AICardFunctions = require('../controllers/AICardFunctions');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' }); // Files go to uploads/ fold
 
-// POST /cards — create new card
-router.post('/', cardFuncts.createCard);
+/*****************AI Card Routes *******************/
 
 // POST /generate - creates new cards using chatGPT and a pdf
 router.post('/generate', upload.single('pdf'), AICardFunctions.generateFlashcards);
 
-// GET /cards — get all cards (can filter by deckID with query param)
-router.get('/', cardFuncts.getAllCards);
+/*****************Regular Card Routes***************/
 
-// GET /cards/:id — get specific card
-router.get('/:id', cardFuncts.getCard);
+//Post route to create a new card.
+router.post('/', cardFuncts.createCard);
 
-// PUT /cards/:id — update existing card
-router.put('/:id', cardFuncts.updateCard);
+//Get route to get all card with a given deckID.
+router.get('/deck/:deckID', cardFuncts.getAllCards);
 
-// DELETE /cards/:id — delete specific card
-router.delete('/:id', cardFuncts.deleteCard);
+//GET route to get a specific card identified by cardID.
+router.get('/:cardID', cardFuncts.getCard);
 
-// DELETE /cards/deck/:deckID — delete all cards in a deck
+//PUT route to update a specific card by cardID
+router.put('/:cardID', cardFuncts.updateCard);
+
+//DELETE route to remove a specific card by cardID.
+router.delete('/:cardID', cardFuncts.deleteCard);
+
+//Delete route to remove all cards with a given deckID.
 router.delete('/deck/:deckID', cardFuncts.deleteCardsByDeck);
 
 module.exports = router;

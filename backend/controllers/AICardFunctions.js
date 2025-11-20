@@ -5,9 +5,6 @@ const pdfParse = require('pdf-parse');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
-/**
- * Accepts a PDF and number of flashcards, returns flashcard JSON.
- */
 exports.generateFlashcards = async (req, res) => {
     try {
         const { numFlashcards } = req.body;
@@ -23,7 +20,7 @@ exports.generateFlashcards = async (req, res) => {
         const pdfText = pdfData.text;
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini", // Use "gpt-4o" for higher quality
+            model: "gpt-4o-mini", 
             messages: [
                 {
                     role: "system",

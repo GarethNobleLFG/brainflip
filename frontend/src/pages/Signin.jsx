@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import "../styles/Signin.css";//change the path as needed
 
-const Signin = () => {
+const Signin = ( { onLogin }) => {
 
 
   const navigate = useNavigate();
@@ -35,13 +35,14 @@ const Signin = () => {
 
       const data = await response.json();
 
-      if (response.ok) { navigate('/dashboard');  console.log("Signed in successfully!: ", data); }
-      else { alert(data.message || 'Error creating account'); }
+      if (response.ok) { navigate('/dashboard');  console.log("Signed in successfully!: ", data);
+        onLogin({ email: formData.email });  }
+
+      else { alert(data.message || 'Incorrect login credentials.'); }
 
     }
     catch (error) {
       console.error('Error:', error);
-      alert('Failed to sign-in.');
 
     }
   }

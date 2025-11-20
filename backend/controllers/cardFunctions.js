@@ -8,22 +8,26 @@ exports.createCard = async (req, res) => {
 
     const { deckID, qSide, aSide, userEmail } = req.body; // Get userEmail from the request
 
-    const cardData = { cardID: Date.now(), deckID, userEmail, qSide, aSide };
+
+    // Verifying all necessary data is not empty.
+    if (!deckID) return res.status(400).json({ error: 'deckID is required' });
+    if (!qSide) return res.status(400).json({ error: 'Question side text cannot be empty' });
+    if (!aSide) return res.status(400).json({ error: 'Answer side text cannot be empty' });
+    if (!userEmail) return res.status(400).json({ error: 'userEmail is required' });
+
+    const cardData = { cardID: Math.floor(Math.random() * 10000), deckID, userEmail, qSide, aSide };
 
     //Ensure that the deckID belongs to existing deck.
-    const deckIDTest = await Deck.findOne({ deckID: inDeckID });
+    const deckIDTest = await Deck.findOne({ deckID: deckID });
     if (!deckIDTest) return res.status(404).json({ error: 'Deck not found' });
 
     //Ensure that the cardID generated is unique.
-    let cardIDTest = await Card.findOne({ cardID: inCardID });
+    let cardIDTest = await Card.findOne({ cardID: cardData.cardID });
     while (cardIDTest) {
-      inCardID++;
-      cardIDTest = await Card.findOne({ cardID: inCardID });
+      cardData.cardID++;
+      cardIDTest = await Card.findOne({ cardID: cardData.cardID });
     }
 
-    //Verify that the Q-Side and A-Side text are not empty strings.
-    if (!inQSide) return res.status(400).json({ error: 'Question side text cannot be empty' });
-    else if (!inASide) return res.status(400).json({ error: 'Answer side text cannot be empty' });
 
 
     //Create new card and save to the DB.
@@ -46,7 +50,7 @@ exports.updateCard = async (req, res) => {
     let updatedCard;
 
     //Check if both are empty strings. Return 400 in this case.
-    if (!qside & !aside) {
+    if (!qside && !aside) {
       return res.status(400).json({ message: "Question and Answer text cannot be empty strings." })
     }
 
@@ -118,7 +122,7 @@ exports.getAllCards = async (req, res) => {
     if (!userEmail) { return res.status(400).json({ message: 'userEmail is required' }); }
 
     const cards = await Card.find({ deckID: deckID,  userEmail: userEmail  });
-    
+
 
     //If no cards returned, return 404. (May choose to handle this differently)
     if (cards.length === 0) {

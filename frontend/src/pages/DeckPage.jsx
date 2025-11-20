@@ -5,8 +5,8 @@ Description: DeckPage component to display cards within a deck and allow adding 
 */
 
 
-import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useParams, Link, useOutletContext } from "react-router-dom";
+import { useState, useEffect } from "react";
 import "../styles/DeckPage.css";
 import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
@@ -149,6 +149,7 @@ function PDFModal({ isOpen, onClose, onSubmit }) {
 
 
 function DeckPage() {
+    const { currentUser } = useOutletContext();
     const { deckId } = useParams();
     const { items: cards, addItem: addCard, deleteItem: deleteCard, updateItem: editCard } = useItemManager([
         { id: 1, front: "What is React?", back: "A JavaScript library for building UIs." },
@@ -158,17 +159,114 @@ function DeckPage() {
     const [formValues, setFormValues] = useState({ front: "", back: "" });
     const [showPDFModal, setShowPDFModal] = useState(false);
 
-    const handleAdd = () => {
-        addCard({ front: formValues.front, back: formValues.back });
-        setFormValues({ front: "", back: "" });
-        setShowForm(false);
+
+
+
+    useEffect(() => {
+        const loadCards = async () => {
+            if (!currentUser?.email) return;
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/cards/deck/${deckId}?userEmail=${encodeURIComponent(currentUser.email)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const mappedCards = data.map(card => ({
+                        id: card.cardID, 
+                        front: card.qSide,
+                        back: card.aSide
+                    }));
+                    setItems(mappedCards); // You'll need to get setItems from useItemManager or use useState
+                }
+            } catch (error) {
+                console.error('Error loading cards:', error);
+            }
+        };
+
+        loadCards();
+    }, [deckId, currentUser?.email]);
+
+
+
+
+
+    const handleAdd = async () => {
+        console.log("Current user:", currentUser); // Add this debug line
+        console.log("User email:", currentUser?.email); // Add this debug line
+
+        if (!currentUser?.email) {
+            alert("Please log in to add cards");
+            return;
+        }
+
+        try {
+            const requestBody = { qSide: formValues.front, aSide: formValues.back, userEmail: currentUser?.email, deckID: deckId };
+            console.log("Request body:", requestBody); // Add this line
+
+            const response = await fetch('http://localhost:5000/api/cards', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', },
+                body: JSON.stringify({ qSide: formValues.front, aSide: formValues.back, userEmail: currentUser?.email, deckID: deckId })
+            });
+
+            console.log("Response status:", response.status); // Add this line
+            console.log("Response headers:", response.headers); // Add this line
+
+
+            const data = await response.json();
+
+            console.log("Response data:", data); // Add this line
+
+
+            if (response.ok) {
+                addCard({ front: formValues.front, back: formValues.back });
+                setFormValues({ front: "", back: "" }); setShowForm(false);
+                console.log("Card saved succesfully!: ", data)
+            }
+            else { alert(data.message || 'Error creating card'); }
+
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to create card');
+        }
     };
+
+
+    const handleEdit = async (cardId, updatedValues) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/cards/${cardId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qside: updatedValues.front, aside: updatedValues.back })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) { editCard(cardId, updatedValues); console.log("Card edited successfully!: ", data) }
+            else { alert(data.message || 'Error with updating the card.') }
+        }
+        catch (error) {
+            console.error('Error:', error);
+            alert('Failed to update card');
+        }
+    }
+
+
+
+
+
 
 
     const handlePDFSubmit = async (pdfFile, numFlashcards) => {
         const formData = new FormData();
-        formData.append('pdf', pdfFile);
-        formData.append('numFlashcards', numFlashcards);
+
+        formData.append('pdf', pdfFile); formData.append('numFlashcards', numFlashcards);
+        formData.append('deckID', deckId); formData.append('userEmail', currentUser?.email);
+
 
         try {
             const response = await fetch(`http://localhost:5000/api/cards/generate`, {
@@ -192,8 +290,8 @@ function DeckPage() {
 
                 alert(`Successfully generated ${data.flashcards.length} flashcards!`);
 
-            } 
-            
+            }
+
             else {
                 alert(`Error: ${data.error}`);
             }
@@ -253,7 +351,7 @@ function DeckPage() {
                         key={card.id}
                         card={card}
                         onDelete={() => deleteCard(card.id)}
-                        onSave={(updated) => editCard(card.id, updated)}
+                        onSave={(updated) => handleEdit(card.id, updated)}
                     />
                 ))}
             </div>

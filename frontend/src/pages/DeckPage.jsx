@@ -146,6 +146,56 @@ function PDFModal({ isOpen, onClose, onSubmit }) {
 }
 
 
+function ShareModal({ isOpen, onClose, onSubmit }) {
+    const [recipientEmail, setRecipientEmail] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (recipientEmail) {
+            setIsLoading(true);
+            await onSubmit(recipientEmail);
+            setIsLoading(false);
+            setRecipientEmail("");
+            onClose();
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Share Deck</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="recipient-email">Recipient Email:</label>
+                        <input
+                            type="email"
+                            id="recipient-email"
+                            value={recipientEmail}
+                            onChange={(e) => setRecipientEmail(e.target.value)}
+                            placeholder="user@example.com"
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <div className="modal-buttons">
+                        <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                            {isLoading ? "Sharing..." : "Share"}
+                        </button>
+                        <button type="button" onClick={onClose} className="btn btn-cancel" disabled={isLoading}>
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+
 
 
 function DeckPage() {
@@ -157,6 +207,8 @@ function DeckPage() {
     const [showForm, setShowForm] = useState(false);
     const [formValues, setFormValues] = useState({ front: "", back: "" });
     const [showPDFModal, setShowPDFModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
 
     const handleAdd = () => {
         addCard({ front: formValues.front, back: formValues.back });
@@ -192,8 +244,8 @@ function DeckPage() {
 
                 alert(`Successfully generated ${data.flashcards.length} flashcards!`);
 
-            } 
-            
+            }
+
             else {
                 alert(`Error: ${data.error}`);
             }
@@ -203,6 +255,68 @@ function DeckPage() {
             console.error('Error generating flashcards:', error);
             alert('Failed to generate flashcards. Please try again.');
         }
+    };
+
+
+    const handleShareSubmit = async (recipientEmail) => {
+        // Frontend testing - just show success message
+        alert(`Deck shared successfully with ${recipientEmail}!`);
+        console.log(`[Frontend Test] Deck ${deckId} would be shared with ${recipientEmail}`);
+
+        // Uncomment below to enable backend integration when ready
+        /*
+        try {
+            const response = await fetch(`http://localhost:5000/api/decks/${deckId}/share`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recipientEmail }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(`Deck shared successfully with ${recipientEmail}!`);
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error sharing deck:', error);
+            alert('Failed to share deck. Please try again.');
+        }
+        */
+    };
+
+
+    const handleToggleFavorite = async () => {
+        // Toggle favorite in local state immediately (for frontend testing)
+        setIsFavorite(!isFavorite);
+
+        // Uncomment below to enable backend integration when ready
+        /*
+        try {
+            const response = await fetch(`http://localhost:5000/api/decks/${deckId}/favorite`, {
+                method: 'PUT',
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setIsFavorite(data.deck.isFavorite);
+            } else {
+                console.error('API Error:', data.error);
+                alert(`Error: ${data.error}`);
+                // Revert on error
+                setIsFavorite(isFavorite);
+            }
+        } catch (error) {
+            console.error('Network error toggling favorite:', error);
+            alert('Failed to connect to server.');
+            // Revert on error
+            setIsFavorite(isFavorite);
+        }
+        */
     };
 
 
@@ -216,15 +330,24 @@ function DeckPage() {
 
             <button
                 onClick={() => setShowPDFModal(true)}
-                style={{
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    marginLeft: '10px'
-                }}
+                className="btn-pdf"
             >
                 + Generate Cards From PDF
             </button>
 
+            <button
+                onClick={() => setShowShareModal(true)}
+                className="btn-share"
+            >
+                Share Deck
+            </button>
+
+            <button
+                onClick={handleToggleFavorite}
+                className={isFavorite ? "btn-favorite-active" : "btn-favorite"}
+            >
+                {isFavorite ? "★ Favorited" : "☆ Favorite"}
+            </button>
 
 
             {showForm && (
@@ -245,6 +368,12 @@ function DeckPage() {
                 isOpen={showPDFModal}
                 onClose={() => setShowPDFModal(false)}
                 onSubmit={handlePDFSubmit}
+            />
+
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                onSubmit={handleShareSubmit}
             />
 
             <div className="cards-grid">

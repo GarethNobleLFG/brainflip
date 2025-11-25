@@ -14,8 +14,9 @@ function App() {
       <Route path="/signup" element={<Signup />} />
 
       <Route path="/dashboard" element={<Dashboard />}>
-        <Route index element={<AllDecksView />} /> 
-        <Route path="deck/:deckId" element={<DeckPage />} /> 
+        <Route index element={<AllDecksView />} />
+        <Route path="favorites" element={<AllDecksView />} />
+        <Route path="deck/:deckId" element={<DeckPage />} />
       </Route>
     </Routes>
   );

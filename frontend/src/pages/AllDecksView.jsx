@@ -2,7 +2,7 @@
 Latest Update: 10/25/25
 Description: AllDecksView component to display and manage all decks.
 */
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
@@ -10,10 +10,13 @@ import "../styles/AllDecksView.css";
 
 
 function AllDecksView() {
+    const location = useLocation();
+    const isFavoritesPage = location.pathname === "/dashboard/favorites";
+
     // hardcoded sample data for courses
-    const { items: decks, addItem: addDeck, deleteItem: deleteDeck } =
+    const { items: decks, addItem: addDeck, deleteItem: deleteDeck, updateItem: updateDeck } =
         useItemManager([
-            { id: 1, name: "CS372", description: "Intro to Web Development", cardCount: 5 },
+            { id: 1, name: "CS372", description: "Intro to Web Development", cardCount: 5, isFavorite: false },
         ]);
 
     // state for showing add deck form and form values
@@ -42,6 +45,7 @@ function AllDecksView() {
             name: trimmedName,
             description: formValues.description,
             cardCount: 0,
+            isFavorite: false,
         });
 
         // reset form values and hide form
@@ -49,11 +53,53 @@ function AllDecksView() {
         setShowForm(false);
     };
 
+    // handle toggling favorite status
+    const handleToggleFavorite = async (deckId) => {
+        // Find the current deck
+        const currentDeck = decks.find(d => d.id === deckId);
+        if (!currentDeck) return;
+
+        // Toggle favorite in local state immediately (for frontend testing)
+        const newFavoriteState = !currentDeck.isFavorite;
+        updateDeck(deckId, { isFavorite: newFavoriteState });
+
+        // Uncomment below to enable backend integration when ready
+        /*
+        try {
+            const response = await fetch(`http://localhost:5000/api/decks/${deckId}/favorite`, {
+                method: 'PUT',
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Update the deck in local state
+                updateDeck(deckId, { isFavorite: data.deck.isFavorite });
+            } else {
+                console.error('API Error:', data.error);
+                alert(`Error: ${data.error}`);
+                // Revert on error
+                updateDeck(deckId, { isFavorite: currentDeck.isFavorite });
+            }
+        } catch (error) {
+            console.error('Network error toggling favorite:', error);
+            alert('Failed to connect to server.');
+            // Revert on error
+            updateDeck(deckId, { isFavorite: currentDeck.isFavorite });
+        }
+        */
+    };
+
+    // Filter decks based on current route
+    const filteredDecks = isFavoritesPage
+        ? decks.filter(deck => deck.isFavorite)
+        : decks;
+
     // render the all decks view
     return (
          <div className="all-decks-container">
             <div className="header-section">
-                <h1 className="page-title">My Decks</h1>
+                <h1 className="page-title">{isFavoritesPage ? "My Favorites" : "My Decks"}</h1>
                 <button className="add-deck-btn" onClick={() => setShowForm(true)}>
                     + New Deck
                 </button>
@@ -75,13 +121,24 @@ function AllDecksView() {
             )}
 
             <div className="deck-grid">
-                {decks.length === 0 ? (
-                    <p className="empty-text">No decks yet. Start by creating one!</p>
+                {filteredDecks.length === 0 ? (
+                    <p className="empty-text">
+                        {isFavoritesPage
+                            ? "No favorite decks yet. Star some decks to see them here!"
+                            : "No decks yet. Start by creating one!"}
+                    </p>
                 ) : (
-                    decks.map((deck) => (
+                    filteredDecks.map((deck) => (
                         <div key={deck.id} className="deck-card">
                             <div className="deck-card-header">
                                 <h3>{deck.name}</h3>
+                                <button
+                                    className={deck.isFavorite ? "favorite-icon-btn favorited" : "favorite-icon-btn"}
+                                    onClick={() => handleToggleFavorite(deck.id)}
+                                    title={deck.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                                >
+                                    {deck.isFavorite ? "★" : "☆"}
+                                </button>
                             </div>
                             <div className="deck-card-body">
                                 <p>{deck.description}</p>

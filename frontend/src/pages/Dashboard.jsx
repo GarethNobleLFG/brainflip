@@ -1,11 +1,14 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import "../styles/Dashboard.css";
+import Footer from "../components/Footer";
 
 function Dashboard() {
     const navigate = useNavigate();
 
     return (
+        <div className="page">
+        <div className="page-content">
         <div className="dashboard-layout">
             {/* Top bar */}
             <header className="top-bar">
@@ -25,6 +28,9 @@ function Dashboard() {
                     <Outlet />
                 </main>
             </div>
+        </div>
+        </div>
+        <Footer />
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { useState } from "react";
 import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
 import "../styles/AllDecksView.css";
+import Footer from "../components/Footer";
 
 
 function AllDecksView() {
@@ -51,6 +52,8 @@ function AllDecksView() {
 
     // render the all decks view
     return (
+        <div className="page">
+        <div className="page-content">
          <div className="all-decks-container">
             <div className="header-section">
                 <h1 className="page-title">My Decks</h1>
@@ -102,6 +105,9 @@ function AllDecksView() {
                     ))
                 )}
             </div>
+        </div>
+        </div>
+        <Footer />
         </div>
     );
 }

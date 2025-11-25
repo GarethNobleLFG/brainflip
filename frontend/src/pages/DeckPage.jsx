@@ -10,6 +10,7 @@ import { useState } from "react";
 import "../styles/DeckPage.css";
 import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
+import Footer from "../components/Footer";
 
 function EditableCard({ card, onDelete, onSave }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -208,6 +209,8 @@ function DeckPage() {
 
 
     return (
+        <div className="page">
+        <div className="page-content">
         <div className="deck-page">
             <Link to="/dashboard" className="back-button">← Back to All Decks</Link>
 
@@ -257,6 +260,9 @@ function DeckPage() {
                     />
                 ))}
             </div>
+        </div>
+        </div>
+        <Footer />
         </div>
     );
 }

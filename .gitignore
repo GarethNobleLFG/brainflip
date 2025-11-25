@@ -1,10 +1,8 @@
 
 node_modules/
-<<<<<<< HEAD
 public/
 package-lock.json
 package.json
 vite.config.js
 README.md
-=======
 .env

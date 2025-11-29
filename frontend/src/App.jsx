@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Homepage from "./pages/Homepage.jsx";
 import Signin from "./pages/Signin.jsx";
@@ -33,6 +33,7 @@ function App() {
       <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />}>
         <Route index element={<AllDecksView />} />
         <Route path="favorites" element={<AllDecksView />} />
+        <Route path="deck" element={<Navigate to="/dashboard" replace />} />
         <Route path="deck/:deckName" element={<DeckPage />} />
       </Route>
     </Routes>

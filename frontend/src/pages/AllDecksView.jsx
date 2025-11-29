@@ -7,17 +7,13 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import AddItemForm from "../components/AddItemForm";
 import "../styles/AllDecksView.css";
+import API_URL from "../config";
 
 
 function AllDecksView() {
     const location = useLocation();
     const isFavoritesPage = location.pathname === "/dashboard/favorites";
 
-    // hardcoded sample data for courses
-    // const { items: decks, addItem: addDeck, deleteItem: deleteDeck, updateItem: updateDeck } =
-    //     useItemManager([
-    //         { id: 1, name: "CS372", description: "Intro to Web Development", cardCount: 5, isFavorite: false },
-    //     ]);
     const { currentUser } = useOutletContext(); // Get the currentUser from the Outlet in App.jsx.
     const [decks, setDecks] = useState([]);
 
@@ -36,7 +32,7 @@ function AllDecksView() {
             try {
                 // Note: You'll need to update the backend route to use userEmail
                 const encodedEmail = encodeURIComponent(currentUser.email);
-                const response = await fetch(`http://localhost:5000/api/decks/user/${encodedEmail}`, {
+                const response = await fetch(`${API_URL}/api/decks/user/${encodedEmail}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -46,7 +42,7 @@ function AllDecksView() {
                     const mappedDecks = data.map(deck => ({
                         id: deck.deckID,
                         name: deck.title,
-                        cardCount: deck.cardCount || 0,
+                        // cardCount: deck.cardCount || 0, // Still not supported by backend
                         isFavorite: deck.isFavorite || false
                     }));
                     setDecks(mappedDecks);
@@ -86,7 +82,7 @@ function AllDecksView() {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/decks', {
+            const response = await fetch(`${API_URL}/api/decks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title: trimmedName, userEmail: currentUser.email })
@@ -98,7 +94,6 @@ function AllDecksView() {
                 setDecks(prevDecks => [...prevDecks, {
                     id: data.deck.deckID,
                     name: trimmedName,
-                    cardCount: 0,
                     isFavorite: false
                 }]);
                 setFormValues({ name: "" });
@@ -127,7 +122,7 @@ function AllDecksView() {
         );
 
         try {
-            const response = await fetch(`http://localhost:5000/api/decks/${deckId}/favorite`, {
+            const response = await fetch(`${API_URL}/api/decks/${deckId}/favorite`, {
                 method: 'PUT',
             });
 
@@ -167,7 +162,7 @@ function AllDecksView() {
         setDecks(prevDecks => prevDecks.filter(deck => deck.id !== deckId));
 
         try {
-            const response = await fetch(`http://localhost:5000/api/decks/${deckId}`, {
+            const response = await fetch(`${API_URL}/api/decks/${deckId}`, {
                 method: 'DELETE',
             });
 
@@ -199,9 +194,11 @@ function AllDecksView() {
         <div className="all-decks-container">
             <div className="header-section">
                 <h1 className="page-title">{isFavoritesPage ? "My Favorites" : "My Decks"}</h1>
-                <button className="add-deck-btn" onClick={() => setShowForm(true)}>
-                    + New Deck
-                </button>
+                {!isFavoritesPage && (
+                    <button className="add-deck-btn" onClick={() => setShowForm(true)}>
+                        + New Deck
+                    </button>
+                )}
             </div>
 
             {showForm && (
@@ -239,7 +236,7 @@ function AllDecksView() {
                                 </button>
                             </div>
                             <div className="deck-card-body">
-                                <p className="deck-count">Cards: {deck.cardCount}</p>
+                                {/* Card count not supported by backend currently */}
                             </div>
                             <div className="deck-card-footer">
                                 <Link to={`/dashboard/deck/${deck.id}`} className="view-btn">

@@ -3,11 +3,8 @@ Latest Update: 10/25/25
 Description: AllDecksView component to display and manage all decks.
 */
 import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
 import "../styles/AllDecksView.css";
 
@@ -17,18 +14,17 @@ function AllDecksView() {
     const isFavoritesPage = location.pathname === "/dashboard/favorites";
 
     // hardcoded sample data for courses
-    const { items: decks, addItem: addDeck, deleteItem: deleteDeck, updateItem: updateDeck } =
-        useItemManager([
-            { id: 1, name: "CS372", description: "Intro to Web Development", cardCount: 5, isFavorite: false },
-        ]);
+    // const { items: decks, addItem: addDeck, deleteItem: deleteDeck, updateItem: updateDeck } =
+    //     useItemManager([
+    //         { id: 1, name: "CS372", description: "Intro to Web Development", cardCount: 5, isFavorite: false },
+    //     ]);
     const { currentUser } = useOutletContext(); // Get the currentUser from the Outlet in App.jsx.
     const [decks, setDecks] = useState([]);
-    const { addItem: addDeck, deleteItem: deleteDeck } = useItemManager([]);
 
 
     // state for showing add deck form and form values
     const [showForm, setShowForm] = useState(false); // State to control form visibility
-    const [formValues, setFormValues] = useState({ name: "", description: "" });
+    const [formValues, setFormValues] = useState({ name: "" });
 
 
 
@@ -50,8 +46,8 @@ function AllDecksView() {
                     const mappedDecks = data.map(deck => ({
                         id: deck.deckID,
                         name: deck.title,
-                        description: deck.description || "",
-                        cardCount: deck.cardCount || 0
+                        cardCount: deck.cardCount || 0,
+                        isFavorite: deck.isFavorite || false
                     }));
                     setDecks(mappedDecks);
                 }
@@ -88,23 +84,12 @@ function AllDecksView() {
             alert("A deck with this name already exists.");
             return;
         }
-        // add the new deck
-        addDeck({
-            name: trimmedName,
-            description: formValues.description,
-            cardCount: 0,
-            isFavorite: false,
-        });
-
-        // reset form values and hide form
-        setFormValues({ name: "", description: "" });
-        setShowForm(false);
 
         try {
             const response = await fetch('http://localhost:5000/api/decks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: trimmedName, description: formValues.description, userEmail: currentUser.email })
+                body: JSON.stringify({ title: trimmedName, userEmail: currentUser.email })
             });
 
             const data = await response.json();
@@ -113,9 +98,10 @@ function AllDecksView() {
                 setDecks(prevDecks => [...prevDecks, {
                     id: data.deck.deckID,
                     name: trimmedName,
-                    description: formValues.description,
-                    cardCount: 0
-                }]); setFormValues({ name: "", description: "" });
+                    cardCount: 0,
+                    isFavorite: false
+                }]);
+                setFormValues({ name: "" });
                 setShowForm(false);
                 console.log("Deck created successfully!", data);
             } else {
@@ -129,16 +115,17 @@ function AllDecksView() {
 
     // handle toggling favorite status
     const handleToggleFavorite = async (deckId) => {
-        // Find the current deck
         const currentDeck = decks.find(d => d.id === deckId);
         if (!currentDeck) return;
 
-        // Toggle favorite in local state immediately (for frontend testing)
+        // Optimistic update
         const newFavoriteState = !currentDeck.isFavorite;
-        updateDeck(deckId, { isFavorite: newFavoriteState });
+        setDecks(prevDecks =>
+            prevDecks.map(deck =>
+                deck.id === deckId ? { ...deck, isFavorite: newFavoriteState } : deck
+            )
+        );
 
-        // Uncomment below to enable backend integration when ready
-        /*
         try {
             const response = await fetch(`http://localhost:5000/api/decks/${deckId}/favorite`, {
                 method: 'PUT',
@@ -147,21 +134,59 @@ function AllDecksView() {
             const data = await response.json();
 
             if (response.ok) {
-                // Update the deck in local state
-                updateDeck(deckId, { isFavorite: data.deck.isFavorite });
+                console.log('Favorite toggled successfully:', data);
             } else {
                 console.error('API Error:', data.error);
                 alert(`Error: ${data.error}`);
                 // Revert on error
-                updateDeck(deckId, { isFavorite: currentDeck.isFavorite });
+                setDecks(prevDecks =>
+                    prevDecks.map(deck =>
+                        deck.id === deckId ? { ...deck, isFavorite: currentDeck.isFavorite } : deck
+                    )
+                );
             }
         } catch (error) {
             console.error('Network error toggling favorite:', error);
             alert('Failed to connect to server.');
             // Revert on error
-            updateDeck(deckId, { isFavorite: currentDeck.isFavorite });
+            setDecks(prevDecks =>
+                prevDecks.map(deck =>
+                    deck.id === deckId ? { ...deck, isFavorite: currentDeck.isFavorite } : deck
+                )
+            );
         }
-        */
+    };
+
+    // handle deleting a deck
+    const handleDeleteDeck = async (deckId) => {
+        if (!window.confirm('Are you sure you want to delete this deck? All cards in this deck will also be deleted.')) {
+            return;
+        }
+
+        // Optimistic delete
+        setDecks(prevDecks => prevDecks.filter(deck => deck.id !== deckId));
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/decks/${deckId}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Deck deleted successfully:', data.message);
+            } else {
+                console.error('API Error:', data.error);
+                alert(`Error: ${data.error}`);
+                // Note: We've already removed it optimistically, would need to reload to restore
+                // For now, just reload all decks
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Network error deleting deck:', error);
+            alert('Failed to delete deck.');
+            window.location.reload();
+        }
     };
 
     // Filter decks based on current route
@@ -184,7 +209,6 @@ function AllDecksView() {
                     <AddItemForm
                         fields={[
                             { name: "name", placeholder: "Deck Name" },
-                            { name: "description", placeholder: "Description" },
                         ]}
                         values={formValues}
                         onChange={handleChange}
@@ -215,7 +239,6 @@ function AllDecksView() {
                                 </button>
                             </div>
                             <div className="deck-card-body">
-                                <p>{deck.description}</p>
                                 <p className="deck-count">Cards: {deck.cardCount}</p>
                             </div>
                             <div className="deck-card-footer">
@@ -224,7 +247,7 @@ function AllDecksView() {
                                 </Link>
                                 <button
                                     className="delete-btn"
-                                    onClick={() => deleteDeck(deck.id)}
+                                    onClick={() => handleDeleteDeck(deck.id)}
                                 >
                                     Delete
                                 </button>

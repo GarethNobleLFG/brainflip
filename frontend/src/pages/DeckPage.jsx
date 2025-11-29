@@ -8,7 +8,6 @@ Description: DeckPage component to display cards within a deck and allow adding 
 import { useParams, Link, useOutletContext } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "../styles/DeckPage.css";
-import useItemManager from "../hooks/useItemManager";
 import AddItemForm from "../components/AddItemForm";
 
 function EditableCard({ card, onDelete, onSave }) {
@@ -146,68 +145,15 @@ function PDFModal({ isOpen, onClose, onSubmit }) {
 }
 
 
-function ShareModal({ isOpen, onClose, onSubmit }) {
-    const [recipientEmail, setRecipientEmail] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (recipientEmail) {
-            setIsLoading(true);
-            await onSubmit(recipientEmail);
-            setIsLoading(false);
-            setRecipientEmail("");
-            onClose();
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <h2>Share Deck</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="recipient-email">Recipient Email:</label>
-                        <input
-                            type="email"
-                            id="recipient-email"
-                            value={recipientEmail}
-                            onChange={(e) => setRecipientEmail(e.target.value)}
-                            placeholder="user@example.com"
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    <div className="modal-buttons">
-                        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                            {isLoading ? "Sharing..." : "Share"}
-                        </button>
-                        <button type="button" onClick={onClose} className="btn btn-cancel" disabled={isLoading}>
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-
-
 
 function DeckPage() {
     const { currentUser } = useOutletContext();
     const { deckId } = useParams();
     const [cards, setCards] = useState([]);
-    const { addItem: addCard, deleteItem: deleteCard, updateItem: editCard } = useItemManager([]);
 
     const [showForm, setShowForm] = useState(false);
     const [formValues, setFormValues] = useState({ front: "", back: "" });
     const [showPDFModal, setShowPDFModal] = useState(false);
-    const [showShareModal, setShowShareModal] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
 
 
@@ -388,53 +334,19 @@ function DeckPage() {
             else {
                 alert(`Error: ${data.error}`);
             }
-            else { 
-                alert(`Error: ${data.error}`); 
-            }
-        }
-        catch (error) {
+
+        } catch (error) {
             console.error('Error generating flashcards:', error);
             alert('Failed to generate flashcards. Please try again.');
         }
-
-
-    const handleShareSubmit = async (recipientEmail) => {
-        // Frontend testing - just show success message
-        alert(`Deck shared successfully with ${recipientEmail}!`);
-        console.log(`[Frontend Test] Deck ${deckId} would be shared with ${recipientEmail}`);
-
-        // Uncomment below to enable backend integration when ready
-        /*
-        try {
-            const response = await fetch(`http://localhost:5000/api/decks/${deckId}/share`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ recipientEmail }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(`Deck shared successfully with ${recipientEmail}!`);
-            } else {
-                alert(`Error: ${data.error}`);
-            }
-        } catch (error) {
-            console.error('Error sharing deck:', error);
-            alert('Failed to share deck. Please try again.');
-        }
-        */
     };
 
 
     const handleToggleFavorite = async () => {
-        // Toggle favorite in local state immediately (for frontend testing)
+        const currentFavorite = isFavorite;
+        // Optimistic update
         setIsFavorite(!isFavorite);
 
-        // Uncomment below to enable backend integration when ready
-        /*
         try {
             const response = await fetch(`http://localhost:5000/api/decks/${deckId}/favorite`, {
                 method: 'PUT',
@@ -443,91 +355,104 @@ function DeckPage() {
             const data = await response.json();
 
             if (response.ok) {
-                setIsFavorite(data.deck.isFavorite);
+                console.log('Favorite toggled successfully:', data);
             } else {
                 console.error('API Error:', data.error);
                 alert(`Error: ${data.error}`);
                 // Revert on error
-                setIsFavorite(isFavorite);
+                setIsFavorite(currentFavorite);
             }
         } catch (error) {
             console.error('Network error toggling favorite:', error);
             alert('Failed to connect to server.');
             // Revert on error
-            setIsFavorite(isFavorite);
+            setIsFavorite(currentFavorite);
         }
-        */
     };
 
-    }
+    const handleDeleteCard = async (cardId) => {
+        if (!window.confirm('Are you sure you want to delete this card?')) {
+            return;
+        }
 
+        // Optimistic delete
+        setCards(prevCards => prevCards.filter(card => card.id !== cardId));
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/cards/${cardId}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Card deleted successfully:', data.message);
+            } else {
+                console.error('API Error:', data.error || data.message);
+                alert(`Error: ${data.error || data.message}`);
+                // Reload cards on error
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Network error deleting card:', error);
+            alert('Failed to delete card.');
+            window.location.reload();
+        }
+    };
 
     return (
-        <div className="deck-page">
-            <Link to="/dashboard" className="back-button">← Back to All Decks</Link>
+    <div className="deck-page">
+        <Link to="/dashboard" className="back-button">← Back to All Decks</Link>
 
-            <h1>Deck ID: {deckId}</h1>
-            <button onClick={() => setShowForm(true)}>+ Add Card</button>
+        <h1>Deck ID: {deckId}</h1>
+        <button onClick={() => setShowForm(true)}>+ Add Card</button>
 
-            <button
-                onClick={() => setShowPDFModal(true)}
-                className="btn-pdf"
-            >
-                + Generate Cards From PDF (AI Powered)
-            </button>
+        <button
+            onClick={() => setShowPDFModal(true)}
+            className="btn-pdf"
+        >
+            + Generate Cards From PDF (AI Powered)
+        </button>
 
-            <button
-                onClick={() => setShowShareModal(true)}
-                className="btn-share"
-            >
-                Share Deck
-            </button>
-
-            <button
-                onClick={handleToggleFavorite}
-                className={isFavorite ? "btn-favorite-active" : "btn-favorite"}
-            >
-                {isFavorite ? "★ Favorited" : "☆ Favorite"}
-            </button>
+        <button
+            onClick={handleToggleFavorite}
+            className={isFavorite ? "btn-favorite-active" : "btn-favorite"}
+        >
+            {isFavorite ? "★ Favorited" : "☆ Favorite"}
+        </button>
 
 
-            {showForm && (
-                <AddItemForm
-                    fields={[
-                        { name: "front", placeholder: "Card Front" },
-                        { name: "back", placeholder: "Card Back" },
-                    ]}
-                    values={formValues}
-                    onChange={(field, value) => setFormValues({ ...formValues, [field]: value })}
-                    onSubmit={handleAdd}
-                    onCancel={() => setShowForm(false)}
+        {showForm && (
+            <AddItemForm
+                fields={[
+                    { name: "front", placeholder: "Card Front" },
+                    { name: "back", placeholder: "Card Back" },
+                ]}
+                values={formValues}
+                onChange={(field, value) => setFormValues({ ...formValues, [field]: value })}
+                onSubmit={handleAdd}
+                onCancel={() => setShowForm(false)}
+            />
+        )}
+
+
+        <PDFModal
+            isOpen={showPDFModal}
+            onClose={() => setShowPDFModal(false)}
+            onSubmit={handlePDFSubmit}
+        />
+
+        <div className="cards-grid">
+            {cards.map((card) => (
+                <EditableCard
+                    key={card.id}
+                    card={card}
+                    onDelete={() => handleDeleteCard(card.id)}
+                    onSave={(updated) => handleEdit(card.id, updated)}
                 />
-            )}
-
-
-            <PDFModal
-                isOpen={showPDFModal}
-                onClose={() => setShowPDFModal(false)}
-                onSubmit={handlePDFSubmit}
-            />
-
-            <ShareModal
-                isOpen={showShareModal}
-                onClose={() => setShowShareModal(false)}
-                onSubmit={handleShareSubmit}
-            />
-
-            <div className="cards-grid">
-                {cards.map((card) => (
-                    <EditableCard
-                        key={card.id}
-                        card={card}
-                        onDelete={() => deleteCard(card.id)}
-                        onSave={(updated) => handleEdit(card.id, updated)}
-                    />
-                ))}
-            </div>
+            ))}
         </div>
+    </div>
     );
 }
 

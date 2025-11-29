@@ -17,8 +17,7 @@ router.get('/user/:userEmail', deckFuncts.getAllDecks);
 //PUT route to update a deck by deckID
 router.put('/:deckID', deckFuncts.updateDeck);
 
-//POST route to share a deck with another user
-router.post('/:deckID/share', deckFuncts.shareDeck);
+
 
 //PUT route to toggle favorite status of a deck
 router.put('/:deckID/favorite', deckFuncts.toggleFavorite);

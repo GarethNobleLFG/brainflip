@@ -5,13 +5,15 @@ Description: DeckPage component to display cards within a deck and allow adding 
 */
 
 
-import { useParams, Link, useOutletContext } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "../styles/DeckPage.css";
 import AddItemForm from "../components/AddItemForm";
 import Footer from "../components/Footer";
 import useDeckActions from "../hooks/useDeckActions";
 import useCardActions from "../hooks/useCardActions";
+import { getUserID } from '../user/getUserFromToken';
+
 
 function EditableCard({ card, onDelete, onSave }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -146,7 +148,7 @@ function PDFModal({ isOpen, onClose, onSubmit }) {
 }
 
 function DeckPage() {
-    const { currentUser } = useOutletContext();
+    console.log("DeckPage component is starting!");
     const { deckName } = useParams();
     const [currentDeckId, setCurrentDeckId] = useState(null);
     const [cards, setCards] = useState([]);
@@ -159,13 +161,19 @@ function DeckPage() {
     const { getDeckByTitle, toggleFavorite } = useDeckActions();
     const { getCards, addCard, updateCard, deleteCard, generateCardsFromPDF } = useCardActions();
 
+    const userID = getUserID();
+    console.log("UserID:", userID);
+    if (!userID) {
+        alert("Please log in to view this deck");
+    }
+
     // New Effect: Lookup Deck ID from Name
     useEffect(() => {
         const fetchDeckId = async () => {
-            if (!currentUser?.email || !deckName) return;
+            if (!userID || !deckName) return;
 
             try {
-                const data = await getDeckByTitle(deckName, currentUser.email);
+                const data = await getDeckByTitle(deckName, userID);
                 setCurrentDeckId(data.deckID);
                 setIsFavorite(data.isFavorite || false);
             } catch (error) {
@@ -174,15 +182,15 @@ function DeckPage() {
         };
 
         fetchDeckId();
-    }, [deckName, currentUser?.email, getDeckByTitle]);
+    }, [deckName, userID, getDeckByTitle]);
 
     // Existing Effect: Load Cards (Dependent on currentDeckId)
     useEffect(() => {
         const loadCards = async () => {
-            if (!currentUser?.email || !currentDeckId) return;
+            if (!userID || !currentDeckId) return;
 
             try {
-                const data = await getCards(currentDeckId, currentUser.email);
+                const data = await getCards(currentDeckId);
                 const mappedCards = data.map(card => ({
                     id: card.cardID,
                     front: card.qSide,
@@ -198,23 +206,16 @@ function DeckPage() {
         };
 
         loadCards();
-    }, [currentDeckId, currentUser?.email, getCards]);
+    }, [currentDeckId, userID, getCards]);
 
 
     const handleAdd = async () => {
-
-        if (!currentUser?.email) {
-            alert("Please log in to add cards");
-            return;
-        }
-        if (!currentDeckId) {
-            alert("Deck not loaded.");
-            return;
-        }
-
         try {
-            const requestBody = { qSide: formValues.front, aSide: formValues.back, userEmail: currentUser?.email, deckID: currentDeckId };
-            const data = await addCard(requestBody);
+            const requestBody = {
+                qSide: formValues.front,
+                aSide: formValues.back,
+                deckID: currentDeckId
+            }; const data = await addCard(requestBody);
 
             const newCard = {
                 id: data.card.cardID,
@@ -259,14 +260,18 @@ function DeckPage() {
         formData.append("pdf", pdfFile);
         formData.append("numFlashcards", numFlashcards);
         formData.append("deckID", currentDeckId);
-        formData.append("userEmail", currentUser?.email);
+
+
+        const userID = getUserID();
+        formData.append("userID", userID);
+
 
         try {
             const data = await generateCardsFromPDF(formData);
 
             // Reload cards after generation
             try {
-                const cardsData = await getCards(currentDeckId, currentUser.email);
+                const cardsData = await getCards(currentDeckId);
                 const mappedCards = cardsData.map(card => ({
                     id: card.cardID,
                     front: card.qSide,

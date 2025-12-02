@@ -9,7 +9,7 @@ router.post('/', userFuncts.createUser);
 router.put('/:userID', userFuncts.updateUser);
 
 //Get /user is for retrieving a user entry.
-router.get('/', userFuncts.getUser);
+router.get('/:email', userFuncts.getUser);
 
 //Delete /users/:id is for deleting a user's entry. This will may only be an admin ability.
 router.delete('/:userID', userFuncts.deleteUser);

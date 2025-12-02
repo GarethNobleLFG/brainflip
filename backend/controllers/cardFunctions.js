@@ -5,37 +5,41 @@ const Deck = require('../models/Deck');
 exports.createCard = async (req, res) => {
   try {
 
-
-    const { deckID, qSide, aSide, userEmail } = req.body; // Get userEmail from the request
-
+    let inDeckID = req.body.deckID;
+    let inQSide = req.body.qSide;
+    let inASide = req.body.aSide;
 
     // Verifying all necessary data is not empty.
-    if (!deckID) return res.status(400).json({ error: 'deckID is required' });
-    if (!qSide) return res.status(400).json({ error: 'Question side text cannot be empty' });
-    if (!aSide) return res.status(400).json({ error: 'Answer side text cannot be empty' });
-    if (!userEmail) return res.status(400).json({ error: 'userEmail is required' });
-
-    const cardData = { cardID: Math.floor(Math.random() * 10000), deckID, userEmail, qSide, aSide };
+    let inCardID = Math.floor(Math.random() * 10000);
+    if (!inDeckID) return res.status(400).json({ error: 'deckID is required' });
+    if (!inQSide) return res.status(400).json({ error: 'Question side text cannot be empty' });
+    if (!inASide) return res.status(400).json({ error: 'Answer side text cannot be empty' });
 
     //Ensure that the deckID belongs to existing deck.
-    const deckIDTest = await Deck.findOne({ deckID: deckID });
+    const deckIDTest = await Deck.findOne({ deckID: inDeckID });
     if (!deckIDTest) return res.status(404).json({ error: 'Deck not found' });
 
     //Ensure that the cardID generated is unique.
-    let cardIDTest = await Card.findOne({ cardID: cardData.cardID });
+    let cardIDTest = await Card.findOne({ cardID: inCardID });
     while (cardIDTest) {
-      cardData.cardID++;
-      cardIDTest = await Card.findOne({ cardID: cardData.cardID });
+      inCardID++;
+      cardIDTest = await Card.findOne({ cardID: inCardID });
     }
 
-
+    const cardData = {
+      cardID: inCardID,
+      deckID: inDeckID,
+      qSide: inQSide,
+      aSide: inASide
+    };
 
     //Create new card and save to the DB.
     const card = new Card(cardData);
     await card.save();
-    console.log(`Card created: ID ${card.cardID} in Deck ${deckID} for User ${userEmail}`);
-    res.status(201).json({ message: 'Card created successfully', card });
-  } catch (error) {
+    console.log(`Card created: ID ${card.cardID} in Deck ${card.deckID}`);
+    res.status(201).json({ card: { cardID: card.cardID } });
+  }
+  catch (error) {
     console.error("Error creating card:", error);
     res.status(400).json({ error: error.message });
   }
@@ -88,7 +92,7 @@ exports.updateCard = async (req, res) => {
 
     //Return the updated card if successful.
     console.log(`Card updated: ID ${cardID}`);
-    res.status(200).json(updatedCard);
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Error updating card:", error);
     res.status(500).json({ message: 'Error updating card', error: error.message });
@@ -101,7 +105,7 @@ exports.getCard = async (req, res) => {
   try {
     //Gets the cardID from the request parameters and searches for a card matching.
     const { cardID } = req.params;
-    const card = await Card.findOne({ cardID: cardID });
+    const card = await Card.findOne({ cardID: cardID }).select({ cardID: 1, aSide: 1, qSide: 1, _id: 0 });
 
     //Return 404 if no match.
     if (!card) {
@@ -119,15 +123,16 @@ exports.getCard = async (req, res) => {
 //Retrieves all cards identified by a deckID.
 exports.getAllCards = async (req, res) => {
   try {
-    //Get the deckID from the request parameters then search for cards with the deckID.
     const { deckID } = req.params;
-    const { userEmail } = req.query;
+    const { userID } = req.query; // GET userID from query params
 
-    if (!userEmail) { return res.status(400).json({ message: 'userEmail is required' }); }
+    // Optional: Verify user owns the deck
+    if (userID) {
+      const deckTest = await Deck.findOne({ deckID: deckID, userID: userID });
+      if (!deckTest) return res.status(404).json({ error: 'Deck not found or access denied' });
+    }
 
-    const cards = await Card.find({ deckID: deckID,  userEmail: userEmail  });
-
-    //Return the cards if successful.
+    const cards = await Card.find({ deckID: deckID });
     res.status(200).json(cards);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving cards', error: error.message });
@@ -149,7 +154,7 @@ exports.deleteCard = async (req, res) => {
 
     //Return success message if deletion was successful.
     console.log(`Card deleted: ID ${cardID}`);
-    res.status(200).json({ message: 'Card deleted successfully.' });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Error deleting card:", error);
     res.status(500).json({ message: 'Error deleting card', error: error.message });

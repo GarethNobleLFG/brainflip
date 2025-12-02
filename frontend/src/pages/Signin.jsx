@@ -55,6 +55,8 @@ const Signin = () => {
         return;
       }
 
+      localStorage.setItem('token', data.token);
+
       alert("Login successful!");
       navigate("/dashboard");
     } catch (error) {
@@ -80,7 +82,7 @@ const Signin = () => {
             <p>sign in to your account</p>
           </div>
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
-            <div classname="form-group">
+            <div className="form-group">
               <input
                 type="email"
                 placeholder="Email"
@@ -88,7 +90,7 @@ const Signin = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div classname="form-group">
+            <div className="form-group">
               <input
                 type="password"
                 placeholder="Password"

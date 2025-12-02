@@ -255,7 +255,7 @@ function AllDecksView() {
                         >
                             ✕
                         </button>
-                        <QuizFeature />
+                        <QuizFeature deck={ selectedDeck }/>
                     </div>
                 </div>
             )}

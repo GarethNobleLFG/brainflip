@@ -1,59 +1,93 @@
-import React, { useState } from 'react';
-import './styles/QuizFeature.css';
+import React, { useState, useEffect } from 'react';
+import './style/QuizFeature.css';
+import useCardActions from '../hooks/useCardActions';
 
-function QuizFeature() {
+function QuizFeature({ deck }) {
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [score, setScore] = useState(0);
     const [showResults, setShowResults] = useState(false);
 
-    // Sample flashcard data - replace with your actual data
-    const sampleCards = [
-        {
-            id: 1,
-            question: "What is the capital of France?",
-            answer: "Paris"
-        },
-        {
-            id: 2,
-            question: "What is 2 + 2?",
-            answer: "4"
-        },
-        {
-            id: 3,
-            question: "Which planet is closest to the Sun?",
-            answer: "Mercury"
-        },
-        {
-            id: 4,
-            question: "What is the largest ocean on Earth?",
-            answer: "Pacific Ocean"
-        }
-    ];
+    const [quizingCards, setCards] = useState([]);
 
-    const currentCard = sampleCards[currentCardIndex];
+    const { getCards, addCard, updateCard, deleteCard, generateCardsFromPDF } = useCardActions();
+
+
+
+    useEffect(() => {
+        const loadCards = async () => {
+            if (!deck) {
+                return;
+            }
+
+            try {
+                const cardData = await getCards(deck.id);
+               
+
+                // Mapping the card data:
+                const mappedCards = cardData.map(card => ({
+                    id: card.cardID || card.id,
+                    question: card.qSide,
+                    answer: card.aSide
+                }));
+
+               
+                setCards(mappedCards);
+            }
+            catch (error) {
+                console.error('Error loading cards:', error);
+            }
+        };
+
+        loadCards();
+    }, [deck, getCards]);
+
+
+
+    const currentCard = quizingCards[currentCardIndex];
+
+
+    // Safety check.
+    if (!currentCard) {
+        return (
+            <div className="quiz-container">
+                <div className="quiz-header">
+                    <h2>Loading cards...</h2>
+                </div>
+            </div>
+        );
+    }
+
 
     const handleCardFlip = () => {
         setIsFlipped(!isFlipped);
     };
+
+
 
     const handleCorrect = () => {
         setScore(score + 1);
         handleNextCard();
     };
 
+
+
     const handleIncorrect = () => {
         handleNextCard();
     };
 
+
+
     const handleNextCard = () => {
-        if (currentCardIndex + 1 < sampleCards.length) {
+        if (currentCardIndex + 1 < quizingCards.length) {
             setCurrentCardIndex(currentCardIndex + 1);
             setIsFlipped(false);
         } else {
             setShowResults(true);
         }
     };
+
+
 
     const resetQuiz = () => {
         setCurrentCardIndex(0);
@@ -62,13 +96,16 @@ function QuizFeature() {
         setShowResults(false);
     };
 
+
+
+
     if (showResults) {
         return (
             <div className="quiz-container">
                 <div className="quiz-results">
                     <h2>Quiz Complete!</h2>
-                    <p>Your Score: {score} out of {sampleCards.length}</p>
-                    <p>Percentage: {Math.round((score / sampleCards.length) * 100)}%</p>
+                    <p>Your Score: {score} out of {quizingCards.length}</p>
+                    <p>Percentage: {Math.round((score / quizingCards.length) * 100)}%</p>
                     <button onClick={resetQuiz} className="restart-btn">
                         Take Quiz Again
                     </button>
@@ -77,12 +114,14 @@ function QuizFeature() {
         );
     }
 
+
+
     return (
         <div className="quiz-container">
             <div className="quiz-header">
                 <h2>Flashcard Quiz</h2>
                 <div className="progress">
-                    Card {currentCardIndex + 1} of {sampleCards.length}
+                    Card {currentCardIndex + 1} of {quizingCards.length}
                 </div>
             </div>
 

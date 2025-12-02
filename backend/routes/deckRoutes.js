@@ -12,12 +12,10 @@ router.get('/lookup', deckFuncts.getDeckByTitle);
 router.get('/:deckID', deckFuncts.getDeck);
 
 //GET route to retrieve all decks belonging for a user.
-router.get('/user/:userEmail', deckFuncts.getAllDecks);
+router.get('/user/:userID', deckFuncts.getAllDecks);
 
 //PUT route to update a deck by deckID
 router.put('/:deckID', deckFuncts.updateDeck);
-
-
 
 //PUT route to toggle favorite status of a deck
 router.put('/:deckID/favorite', deckFuncts.toggleFavorite);

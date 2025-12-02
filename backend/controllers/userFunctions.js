@@ -2,11 +2,12 @@ const User = require('../models/User');
 const Deck = require('../models/Deck');
 const Card = require('../models/Card');
 
-//Function for creating a User - MUST VERIFY AJAX CALL USES CORRECT JSON FORMAT AND NAMING.
+//Function for creating a User
 exports.createUser = async (req, res) => {
   try {
 
     //Get the values for a new user from the request body.
+    let inUserID = Math.ceil(Math.random() * 10000);
     let inEmail = req.body.email;
     let inUsername = req.body.username;
     let inPassword = req.body.password;
@@ -19,9 +20,16 @@ exports.createUser = async (req, res) => {
     const usernameTest = await User.findOne({ username: inUsername });
     if (usernameTest) return res.status(400).json({ message: 'Username already in use' });
 
+    //Verify userID is not already in use. Increment and try again if it is.
+    let userIDTest = await User.findOne({ userID: inUserID });
+        while (userIDTest) {
+          inUserID++;
+          userIDTest = await User.findOne({ userID: inUserID });
+        }
 
     //Prepare data for new user
     const UserData = {
+      userID: inUserID,
       email: inEmail,
       username: inUsername,
       password: inPassword,
@@ -30,7 +38,8 @@ exports.createUser = async (req, res) => {
     //Create new user and save into the DB.
     const user = new User(UserData);
     await user.save();
-    res.status(201).json({ message: 'User created successfully', user });
+    console.log(`User Successfully Created: ${user}`);
+    res.status(201).json({ UserID: user.userID });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -40,49 +49,74 @@ exports.createUser = async (req, res) => {
 
 
 //Updates a User's DB entry.
-//Note: MongoDB's uniqueness requirements from the schema is used here to ensure
-//      that updates don't create data collisions for usernames, emails, and userIDs.
 exports.updateUser = async (req, res) => {
   try {
-    const user = await User.findOneAndUpdate(
-      { userID: req.params.userID },
-      req.body,
-      { new: true }
-    );
+    //Get the input values from the request parameters and body.
+    const { userID } = req.params;
+    const { email, username, password } = req.body;
+    let updatedUser;
 
-    //Return 404 if no user could be found.
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    //Check if all inputs are empty strings. Return 400 in this case.
+    if (!email && !username && !password) {
+      return res.status(400).json({ message: "Email, Username, and password text cannot all be empty strings." })
     }
 
-    //Return a success message if successful and return error otherwise.
-    res.json({ message: 'User updated successfully', user });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    //If email isn't empty, update it.
+    if (email) {
+      updatedUser = await User.findOneAndUpdate(
+        { userID: userID },
+        { email: email },
+        { new: true }
+      );
+    }
+    //If username isn't empty, update it.
+    if (username) {
+      updatedUser = await User.findOneAndUpdate(
+        { userID: userID },
+        { username: username },
+        { new: true }
+      );
+    }
+    //If password isn't empty, update it.
+    if(password){
+      updatedUser = await User.findOneAndUpdate(
+        { userID: userID },
+        { password: password },
+        { new: true }
+      );
+    }
+
+    //If no user could be found, return 404.
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    //Return the updated User if successful.
+    console.log(`User updated: ID ${userID}`);
+    res.status(200).json({success: true});
+  } catch (error) {
+    console.error("Error updating User:", error);
+    res.status(500).json({ message: 'Error updating User', error: error.message });
   }
 }
-
-
 
 
 //Reads one user using the email address to search for it.
 exports.getUser = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email } = req.params.email;
 
     //Check to see if there is a user for the provided email. 
     //Return the user if found. Return 404 otherwise.
     if (email) {
       const user = await User.findOne({ email });
       if (!user) return res.status(404).json({ message: 'User not found' });
-      return res.json(user);
+      return res.json({userID: user.userID});
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
-
-
 
 
 //Deletes a user identified using userID to find
@@ -111,35 +145,35 @@ exports.deleteUser = async (req, res) => {
     const deletedCards = await Card.deleteMany({ deckID: { $in: deckIDs } });
 
     //Return a report of how many decks and cards were deleted with the user.
-    res.status(200).json({ message: `User, ${deletedDecks.deletedCount} Deck(s), and ${deletedCards.deletedCount} Card(s) deleted.` });
+    res.status(200).json({ success: true, message: `User, ${deletedDecks.deletedCount} Deck(s), and ${deletedCards.deletedCount} Card(s) deleted.` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 }
 
 
 
-  exports.loginUser = async (req, res) => {
-    try {
-      const { email, password } = req.body;
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-      if (!email || !password) { return res.status(400).json({ message: 'Email and password are required' }); }
-
-
-      const user = await User.findOne({ email });
-      if (!user) { return res.status(404).json({ message: 'Invalid login.' }); }
-      // Using the 'user' defined throught the email search to check the password. Saves loading time rather than starting a new search.
-      if (user.password !== password) { return res.status(401).json({ message: 'Invalid email or password' }); }
+    if (!email || !password) { return res.status(400).json({ message: 'Email and password are required' }); }
 
 
-      // If passes all 'if' statements, then return a success.
-      console.log("User logged in successfully:", email);
-      return res.status(200).json({ message: 'Login successful', });
+    const user = await User.findOne({ email });
+    if (!user) { return res.status(404).json({ message: 'Invalid login.' }); }
+    // Using the 'user' defined throught the email search to check the password. Saves loading time rather than starting a new search.
+    if (user.password !== password) { return res.status(401).json({ message: 'Invalid email or password' }); }
 
-    }
-    catch (error) {
-      console.log("Failed to login!!");
-      res.status(500).json({ error: error.message });
-    }
+
+    // If passes all 'if' statements, then return a success.
+    console.log("User logged in successfully:", email);
+    return res.status(200).json({ userID: user.userID});
+
   }
+  catch (error) {
+    console.log("Failed to login!!");
+    res.status(500).json({ error: error.message });
+  }
+}
 

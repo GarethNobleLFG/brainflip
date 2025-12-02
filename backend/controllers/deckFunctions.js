@@ -8,10 +8,10 @@ exports.createDeck = async (req, res) => {
 
     //userID is assumed to be handed to the function with legitimate value.
     let deckID = Math.ceil(Math.random() * 10000);
-    let userEmail = req.body.userEmail;  
+    let userID = req.body.userID;
     let title = req.body.title;
 
-    const userIDTest = await User.findOne({ email: userEmail });
+    const userIDTest = await User.findOne({ userID: userID });
     if (!userIDTest) return res.status(400).json({ error: "No user exists with the provided userID" });
 
     //May implement a length limit to the title - Might want to do that on the front end though.
@@ -28,15 +28,15 @@ exports.createDeck = async (req, res) => {
     //Prep new deck data.
     const deckData = {
       deckID: deckID,
-      userEmail: userEmail,
+      userID: userID,
       title: title
     };
 
     //Create new deck and save it to the DB.
     const deck = new Deck(deckData);  // Use Deck constructor
     await deck.save();
-    console.log(`Deck created: ID ${deck.deckID}, Title "${title}", User ${userEmail}`);
-    res.status(201).json({ message: 'Deck created successfully', deck });
+    console.log(`Deck created: ID ${deck.deckID}, Title "${deck.title}", User ${deck.userID}`);
+    res.status(201).json({ deckID: deck.deckID });
   } catch (error) {
     console.error("Error creating deck:", error);
     res.status(400).json({ error: error.message });
@@ -52,21 +52,21 @@ exports.updateDeck = async (req, res) => {
     const { deckID } = req.params;
 
     let inTitle = req.body.title;
-    if (!inTitle) return res.status(400).json({ error: "Decks cannot have an empty title" });
+    if (!inTitle) return res.status(400).json({ success: false, error: "Decks cannot have an empty title" });
 
     const updatedDeck = await Deck.findOneAndUpdate({ deckID: deckID }, req.body, { new: true });
 
     //Return 404 if no deck matches that deckID.
     if (!updatedDeck) {
-      return res.status(404).json({ message: 'Deck not found' });
+      return res.status(404).json({ success: false, message: 'Deck not found' });
     }
 
     //Return success otherwise.
     console.log(`Deck updated: ID ${deckID}, New Title "${updatedDeck.title}"`);
-    res.json({ message: 'Deck updated successfully', deck: updatedDeck });
+    res.json({ sucess: true, message: 'Deck updated successfully'});
   } catch (err) {
     console.error("Error updating deck:", err);
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 };
 
@@ -78,7 +78,7 @@ exports.getDeck = async (req, res) => {
   try {
     //Get the deckID from the request parameters and search for it.
     const { deckID } = req.params;
-    const deck = await Deck.findOne({ deckID: deckID });
+    const deck = await Deck.findOne({ deckID: deckID }).select({deckID: 1, title: 1, isFavorite: 1});
 
     //Return 404 if no deck could be found.
     if (!deck) {
@@ -119,9 +119,9 @@ exports.getDeckByTitle = async (req, res) => {
 exports.getAllDecks = async (req, res) => {
   try {
 
-    //Get the userEmail from the request parameters and search for decks with this userID.
-    const { userEmail } = req.params;
-    const decks = await Deck.find({ userEmail: userEmail });
+    //Get the userID from the request parameters and search for decks with this userID.
+    const { userID } = req.params;
+    const decks = await Deck.find({ userID: userID }).select({deckID: 1, title: 1, isFavorite: 1, _id: 0});
 
     if (decks.length === 0) {
       return res.status(404).json({ message: 'No decks found for this user.' });
@@ -154,7 +154,7 @@ exports.deleteDeck = async (req, res) => {
 
     //Return success if the deck was deleted.
     console.log(`Deck deleted: ID ${deckID} and ${cascade.deletedCount} cards.`);
-    res.json({ message: `Deck and ${cascade.deletedCount} card(s) deleted` });
+    res.json({success: true, message: `Deck and ${cascade.deletedCount} card(s) deleted`});
   } catch (err) {
     console.error("Error deleting deck:", err);
     res.status(500).json({ error: err.message });

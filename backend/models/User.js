@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 //Definition of DB Schemas
 const userSchema = new mongoose.Schema({
+    userID: {type: Number, required: true, unique: true},
     email: {type: String, required: true, unique: true}, 
     username: {type: String, required: true, unique: true},
     password: {type: String}, //Will need to hash in future implementations

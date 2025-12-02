@@ -9,6 +9,7 @@ import { useParams, Link, useOutletContext } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "../styles/DeckPage.css";
 import AddItemForm from "../components/AddItemForm";
+import Footer from "../components/Footer";
 import useDeckActions from "../hooks/useDeckActions";
 import useCardActions from "../hooks/useCardActions";
 
@@ -295,6 +296,57 @@ function DeckPage() {
         setIsFavorite(!isFavorite);
 
         try {
+            const response = await fetch(`http://localhost:5000/api/cards/generate`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const loadCards = async () => {
+                    try {
+                        const cardsResponse = await fetch(`http://localhost:5000/api/cards/${deckId}?userEmail=${encodeURIComponent(currentUser.email)}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+
+                        if (cardsResponse.ok) {
+                            const cardsData = await cardsResponse.json();
+                            const mappedCards = cardsData.map(card => ({
+                                id: card.cardID,
+                                front: card.qSide,
+                                back: card.aSide
+                            }));
+
+                            console.log("✅ Setting cards:", mappedCards);
+                            setCards(mappedCards);
+                        }
+                        else if (cardsResponse.status === 404 || cardsResponse.status === 400) {
+                            setCards([]);
+                        }
+                        else {
+                            const errorData = await cardsResponse.json();
+                            alert(`Error: ${errorData.error}`);
+                        }
+
+
+                    }
+                    catch (error) {
+                        console.error('Error reloading cards: ', error);
+                    }
+                }
+
+
+                await loadCards();
+                alert(`Successfully generated ${data.flashcards.length} flashcards!`);
+            }
+            else {
+                alert(`Error: ${data.error}`);
+            }
             const data = await toggleFavorite(currentDeckId);
             console.log("Favorite toggled successfully:", data);
         } catch (error) {

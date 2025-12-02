@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import AddItemForm from "../components/AddItemForm";
 import "../styles/AllDecksView.css";
+import Footer from "../components/Footer";
 import useDeckActions from "../hooks/useDeckActions";
 
 

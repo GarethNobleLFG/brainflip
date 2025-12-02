@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import "../styles/Signin.css";//change the path as needed
 import Footer from "../components/Footer";
+import API_URL from '../config';
 
 // Validation regex patterns
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

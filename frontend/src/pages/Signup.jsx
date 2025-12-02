@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import '../styles/Signup.css';
 import Footer from "../components/Footer";
+import API_URL from '../config';
 
 // Validation regex patterns
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,9 +37,11 @@ const Signup = () => {
         if (!validate()) return;
 
         try {
-            const response = await fetch("http://localhost:5000/user", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const response = await fetch(`${API_URL}/api/users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
                     email,
                     username: name,   // backend expects username

@@ -347,8 +347,9 @@ function DeckPage() {
             else {
                 alert(`Error: ${data.error}`);
             }
-            const data = await toggleFavorite(currentDeckId);
-            console.log("Favorite toggled successfully:", data);
+
+            const fav = await toggleFavorite(currentDeckId);
+            console.log("Favorite toggled successfully:", fav);
         } catch (error) {
             console.error("Network error toggling favorite:", error);
             alert(`Error: ${error.message}`);

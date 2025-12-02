@@ -161,6 +161,10 @@ function DeckPage() {
     const { getDeckByTitle, toggleFavorite } = useDeckActions();
     const { getCards, addCard, updateCard, deleteCard, generateCardsFromPDF } = useCardActions();
 
+    //  Loading states for AI card generator.
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatingMessage, setGeneratingMessage] = useState("");
+
     const userID = getUserID();
     console.log("UserID:", userID);
     if (!userID) {
@@ -265,9 +269,14 @@ function DeckPage() {
         const userID = getUserID();
         formData.append("userID", userID);
 
+        setIsGenerating(true);
+        setGeneratingMessage("Generating Cards...");
+
 
         try {
             const data = await generateCardsFromPDF(formData);
+
+            setGeneratingMessage("Cards generated! Reloading...");
 
             // Reload cards after generation
             try {
@@ -280,16 +289,26 @@ function DeckPage() {
 
                 console.log("✅ Setting cards:", mappedCards);
                 setCards(mappedCards);
+                setGeneratingMessage("Cards loaded successfully!");
             }
             catch (error) {
                 console.error("Error reloading cards: ", error);
+                setGeneratingMessage("Error loading new cards");
             }
 
             alert(`Successfully generated ${data.flashcards.length} flashcards!`);
 
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Error generating flashcards:", error);
+            setGeneratingMessage("Error generating cards");
             alert("Failed to generate flashcards. Please try again.");
+        }
+        finally {
+            setTimeout(() => {
+                setIsGenerating(false);
+                setGeneratingMessage("");
+            }, 2000);
         }
     };
 
@@ -366,6 +385,13 @@ function DeckPage() {
                     onSubmit={handleAdd}
                     onCancel={() => setShowForm(false)}
                 />
+            )}
+
+            {/* Generating Message For AI Cards. */}
+            {isGenerating && (
+                <div className="generating-message">
+                    {generatingMessage}
+                </div>
             )}
 
 

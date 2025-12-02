@@ -212,3 +212,23 @@
 .btn-favorite-active:hover {
     background-color: #FFA000;
 }
+
+
+
+/* AI Card Generation Message. */
+.generating-message {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 16px 0;
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #bbdefb;
+}
+
+.btn-pdf:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}

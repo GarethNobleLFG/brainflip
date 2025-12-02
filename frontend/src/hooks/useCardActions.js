@@ -66,9 +66,11 @@ const useCardActions = () => {
         });
 
         const data = await response.json();
+
         if (!response.ok) {
             throw new Error(data.error || "Error generating cards");
         }
+        
         return data;
     }, []);
 

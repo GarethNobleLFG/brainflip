@@ -22,31 +22,16 @@ app.use(cors({
     } 
 
     // Allow localhost for development
-    if (origin.includes('localhost')) {
+    if (origin && origin.includes('localhost')) {
       return callback(null, true);
     } 
 
     // Allow any Vercel deployment
-    if (origin.includes('vercel.app')) {
+    if (origin && origin.includes('vercel.app')) {
       return callback(null, true);
     }
 
-    // Allow specific domains
-    const allowedOrigins = [
-      'https://flashcard-project-frontend-dugfq8fu6-garethnoblelfgs-projects.vercel.app',
-      /^https:\/\/flashcard-project-frontend-.*\.vercel\.app$/
-    ];
-
-    const isAllowed = allowedOrigins.some(pattern => {
-      if (typeof pattern === 'string') {
-        return origin === pattern;
-      } 
-      else {
-        return pattern.test(origin);
-      }
-    });
-
-    callback(null, isAllowed);
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

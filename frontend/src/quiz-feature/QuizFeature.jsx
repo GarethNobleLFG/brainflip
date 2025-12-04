@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './style/QuizFeature.css';
+import '../styles/QuizFeature.css';
 import useCardActions from '../hooks/useCardActions';
 
 function QuizFeature({ deck }) {

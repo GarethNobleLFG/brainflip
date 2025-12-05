@@ -49,19 +49,6 @@ catch (error) {
   console.error('Error loading routes:', error);
 }
 
-// Debug route registration
-console.log('Registering API routes...');
-app.get('/api/debug', (req, res) => {
-  res.json({ 
-    message: 'Debug route works',
-    timestamp: new Date().toISOString(),
-    routes: 'API routes should be working'
-  });
-});
-console.log('Debug route registered');
-
-
-
 
 
 // Root route for testing

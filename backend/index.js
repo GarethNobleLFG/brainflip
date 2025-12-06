@@ -69,39 +69,48 @@ app.get('/', (req, res) => {
 
 
 
-// Connect To MongoDB 
-let isConnected = false;
+// Connect To MongoDB. 
+let cached = global.mongoose;
 
-const connectToDatabase = async () => {
-  if (isConnected) {
-    return;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectToDatabase() {
+
+  if (cached.conn) {
+    return cached.conn;
   }
 
-  try {
-    console.log('Attempting to connect to MongoDB...');
-    console.log('MONGODB_URI exists:', !!MONGODB_URI);
-
-    await mongoose.connect(MONGODB_URI, {
+  if (!cached.promise) {
+    console.log("Attempting to connect to MongoDB...");
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000
+    })
+    .then((mongoose) => {
+      console.log("✅ Connected to MongoDB successfully");
+      return mongoose;
+    })
+    .catch(err => {
+      console.error("❌ MongoDB connection failed:", err);
+      throw err;
     });
-
-    isConnected = true;
-    console.log('✅ Connected to MongoDB successfully');
-
-    try {
-      await mongoose.connection.db.collection('users').dropIndex('userID_1');
-    }
-    catch (err) {
-      // Index might not exist, that's fine
-    }
   }
-  catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
-    isConnected = false;
-    throw new Error(`Database connection failed: ${error.message}`);
+
+  cached.conn = await cached.promise;
+
+  // Drop index safely (runs only once per instance)
+  try {
+    await cached.conn.connection.db.collection("users").dropIndex("userID_1");
+  } 
+  catch (e) {
+    // Doesn't Matter If It Doesn't Exist.
   }
-};
+
+  return cached.conn;
+
+}
 
 
 
